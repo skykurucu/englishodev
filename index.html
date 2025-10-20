@@ -1,108 +1,90 @@
-<!doctype html>
-<html lang="tr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Ödev Portalı — Giriş Sorunu Çözülmüş</title>
-  <style>
-    body{margin:0;padding:0;font-family:Arial;background:#0f1724;color:#e6eef6;display:flex;align-items:center;justify-content:center;height:100vh}
-    .card{background:#111a2a;padding:30px;border-radius:12px;width:320px;box-shadow:0 0 15px rgba(0,0,0,.4)}
-    input,select,button{width:100%;margin-top:10px;padding:10px;border-radius:6px;border:1px solid #333;background:#1a2335;color:#fff}
-    button{background:linear-gradient(90deg,#06b6d4,#7c3aed);border:none;cursor:pointer;font-weight:bold}
-    button:hover{opacity:.9}
-    .hidden{display:none}
-  </style>
-</head>
-<body>
-  <div class="card">
+<script type="module">
+  // 1️⃣ Firebase modüllerini import et
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    <div id="loginPanel">
-      <h2>Ödev Portalı</h2>
-      <select id="roleSelect">
-        <option value="class">Sınıf (öğrenci)</option>
-        <option value="teacher">Hoca</option>
-      </select>
-      <input id="user" type="text" placeholder="Kullanıcı adı" />
-      <input id="pass" type="password" placeholder="Şifre" />
-      <button id="loginBtn" type="button">Giriş Yap</button>
-      <p style="font-size:12px;color:#aaa;margin-top:8px">
-        👨‍🏫 hoca / hoca123<br>👨‍🎓 sinif / sinif123
-      </p>
-    </div>
+  // 2️⃣ Firebase yapılandırma (senin kodun buraya!)
+  const firebaseConfig = {
+    apiKey: "AIzaSyBYvrxyR8gJLge1uyOSbqy0DRNTZFwOHVw",
+    authDomain: "odev-portal.firebaseapp.com",
+    projectId: "odev-portal",
+    storageBucket: "odev-portal.firebasestorage.app",
+    messagingSenderId: "40083187",
+    appId: "1:40083187:web:1c14c9cf0293cb5029a186",
+    measurementId: "G-WDGHL2S3NQ"
+  };
 
-    <div id="studentPanel" class="hidden">
-      <h3>👨‍🎓 Öğrenci Paneli</h3>
-      <input id="studentName" placeholder="Adınız" />
-      <textarea id="assignmentArea" placeholder="Ödevinizi yazın..." rows="6"></textarea>
-      <button id="saveBtn" type="button">Kaydet</button>
-      <button id="logoutBtn1" type="button">Çıkış</button>
-      <p id="lastSaved" style="font-size:12px;color:#aaa"></p>
-    </div>
+  // 3️⃣ Firebase’i başlat
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    <div id="teacherPanel" class="hidden">
-      <h3>👨‍🏫 Hoca Paneli</h3>
-      <input id="teacherStudent" placeholder="Öğrenci adı" />
-      <button id="openBtn" type="button">Aç</button>
-      <button id="logoutBtn2" type="button">Çıkış</button>
-      <textarea id="teacherArea" placeholder="Ödev burada görünecek..." rows="6"></textarea>
-    </div>
+  // 4️⃣ Giriş sistemi
+  const ACCOUNTS=[
+    {username:'hoca',password:'hoca123',role:'teacher'},
+    {username:'sinif',password:'sinif123',role:'class'}
+  ];
 
-  </div>
+  const loginPanel=document.getElementById("loginPanel");
+  const studentPanel=document.getElementById("studentPanel");
+  const teacherPanel=document.getElementById("teacherPanel");
+  const loginBtn=document.getElementById("loginBtn");
+  const logoutBtn1=document.getElementById("logoutBtn1");
+  const logoutBtn2=document.getElementById("logoutBtn2");
+  const saveBtn=document.getElementById("saveBtn");
+  const openBtn=document.getElementById("openBtn");
 
-  <script>
-    const ACCOUNTS=[
-      {username:'hoca',password:'hoca123',role:'teacher'},
-      {username:'sinif',password:'sinif123',role:'class'}
-    ];
-    const loginPanel=document.getElementById("loginPanel");
-    const studentPanel=document.getElementById("studentPanel");
-    const teacherPanel=document.getElementById("teacherPanel");
+  let currentUser=null;
 
-    const loginBtn=document.getElementById("loginBtn");
-    const logoutBtn1=document.getElementById("logoutBtn1");
-    const logoutBtn2=document.getElementById("logoutBtn2");
-    const saveBtn=document.getElementById("saveBtn");
-    const openBtn=document.getElementById("openBtn");
+  loginBtn.onclick=()=>{
+    const u=document.getElementById("user").value.trim();
+    const p=document.getElementById("pass").value;
+    const role=document.getElementById("roleSelect").value;
+    const acc=ACCOUNTS.find(a=>a.username===u&&a.password===p&&a.role===role);
+    if(!acc){alert("Hatalı kullanıcı adı veya şifre!");return;}
+    currentUser=acc;
+    loginPanel.classList.add("hidden");
+    if(role==="class")studentPanel.classList.remove("hidden");
+    else teacherPanel.classList.remove("hidden");
+  };
 
-    let currentUser=null;
+  function logout(){
+    currentUser=null;
+    loginPanel.classList.remove("hidden");
+    studentPanel.classList.add("hidden");
+    teacherPanel.classList.add("hidden");
+  }
+  logoutBtn1.onclick=logout;
+  logoutBtn2.onclick=logout;
 
-    loginBtn.onclick=()=>{
-      const u=document.getElementById("user").value.trim();
-      const p=document.getElementById("pass").value;
-      const role=document.getElementById("roleSelect").value;
-      const acc=ACCOUNTS.find(a=>a.username===u&&a.password===p&&a.role===role);
-      if(!acc){alert("Hatalı kullanıcı adı veya şifre!");return;}
-      currentUser=acc;
-      loginPanel.classList.add("hidden");
-      if(role==="class")studentPanel.classList.remove("hidden");
-      else teacherPanel.classList.remove("hidden");
-    };
+  // 5️⃣ Öğrenci ödev kaydı (Firebase'e)
+  saveBtn.onclick=async()=>{
+    const name=document.getElementById("studentName").value.trim();
+    const text=document.getElementById("assignmentArea").value;
+    if(!name){alert("Adınızı girin");return;}
 
-    function logout(){
-      currentUser=null;
-      loginPanel.classList.remove("hidden");
-      studentPanel.classList.add("hidden");
-      teacherPanel.classList.add("hidden");
-    }
-    logoutBtn1.onclick=logout;
-    logoutBtn2.onclick=logout;
-
-    saveBtn.onclick=()=>{
-      const name=document.getElementById("studentName").value.trim();
-      const text=document.getElementById("assignmentArea").value;
-      if(!name){alert("Adınızı girin");return;}
-      localStorage.setItem("assign:"+name,JSON.stringify({text,savedAt:new Date()}));
+    try {
+      await setDoc(doc(db,"assignments",name),{
+        text:text,
+        savedAt:new Date().toISOString()
+      });
       document.getElementById("lastSaved").textContent="Kaydedildi: "+new Date().toLocaleString("tr-TR");
-      alert("Ödev kaydedildi!");
-    };
+      alert("Ödev buluta kaydedildi!");
+    } catch(e){
+      alert("Kaydetme hatası: "+e.message);
+    }
+  };
 
-    openBtn.onclick=()=>{
-      const name=document.getElementById("teacherStudent").value.trim();
-      const data=localStorage.getItem("assign:"+name);
-      if(!data){alert("Bu isimle kayıt yok");return;}
-      const obj=JSON.parse(data);
-      document.getElementById("teacherArea").value=obj.text;
-    };
-  </script>
-</body>
-</html>
+  // 6️⃣ Hoca ödev görüntüleme (Firebase’ten çek)
+  openBtn.onclick=async()=>{
+    const name=document.getElementById("teacherStudent").value.trim();
+    if(!name){alert("İsim girin");return;}
+    try {
+      const snap=await getDoc(doc(db,"assignments",name));
+      if(!snap.exists()){alert("Bu isimle kayıt yok!");return;}
+      const data=snap.data();
+      document.getElementById("teacherArea").value=data.text;
+    } catch(e){
+      alert("Veri çekme hatası: "+e.message);
+    }
+  };
+</script>
