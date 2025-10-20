@@ -53,88 +53,87 @@
   </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+<!-- Firebase compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
 
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyBHMkITC7aREHiP-3abjq__M0MAAX9gNz4",
-  authDomain: "odev-efl.firebaseapp.com",
-  projectId: "odev-efl",
-  storageBucket: "odev-efl.firebasestorage.app",
-  messagingSenderId: "35018411001",
-  appId: "1:35018411001:web:e9782551cd9b24fd738b28"
-};
+<script>
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBHMkITC7aREHiP-3abjq__M0MAAX9gNz4",
+    authDomain: "odev-efl.firebaseapp.com",
+    projectId: "odev-efl",
+    storageBucket: "odev-efl.firebasestorage.app",
+    messagingSenderId: "35018411001",
+    appId: "1:35018411001:web:e9782551cd9b24fd738b28"
+  };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
 
-// Tek kullanıcı giriş bilgileri
-const credentials = {
-  student: { username: "sinif", password: "1234" },
-  teacher: { username: "hoca", password: "admin" }
-};
+  // Tek kullanıcı giriş bilgileri
+  const credentials = {
+    student: { username: "sinif", password: "1234" },
+    teacher: { username: "hoca", password: "admin" }
+  };
 
-let currentUser = null;
+  let currentUser = null;
 
-function login() {
-  const username = document.getElementById('username').value.trim();
-  const password = document.getElementById('password').value.trim();
-  const role = document.getElementById('role').value;
+  function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const role = document.getElementById('role').value;
 
-  if(credentials[role] && credentials[role].username === username && credentials[role].password === password){
-    currentUser = { username, role };
-    document.getElementById('login').style.display = 'none';
-    if(role === 'student') {
-      document.getElementById('home').style.display = 'block';
+    if(credentials[role] && credentials[role].username === username && credentials[role].password === password){
+      currentUser = { username, role };
+      document.getElementById('login').style.display = 'none';
+      if(role === 'student') {
+        document.getElementById('home').style.display = 'block';
+      } else {
+        document.getElementById('dashboard').style.display = 'block';
+        loadAllHomework();
+      }
     } else {
-      document.getElementById('dashboard').style.display = 'block';
-      loadAllHomework();
+      document.getElementById('loginError').innerText = "Kullanıcı adı veya şifre hatalı!";
     }
-  } else {
-    document.getElementById('loginError').innerText = "Kullanıcı adı veya şifre hatalı!";
   }
-}
 
-function logout() {
-  currentUser = null;
-  document.getElementById('login').style.display = 'block';
-  document.getElementById('home').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'none';
-  document.getElementById('homeMsg').innerText = "";
-}
-
-async function submitHomework() {
-  const studentName = document.getElementById('studentName').value.trim();
-  const homework = document.getElementById('homework').value.trim();
-  if(!studentName || !homework) return;
-
-  try {
-    await addDoc(collection(db, "homeworks"), { studentName, homework, timestamp: Date.now() });
-    document.getElementById('homeMsg').innerText = "Ödev kaydedildi!";
-    document.getElementById('studentName').value = "";
-    document.getElementById('homework').value = "";
-  } catch(err) {
-    console.error(err);
+  function logout() {
+    currentUser = null;
+    document.getElementById('login').style.display = 'block';
+    document.getElementById('home').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('homeMsg').innerText = "";
   }
-}
 
-function loadAllHomework() {
-  const tbody = document.getElementById('homeworkList');
-  tbody.innerHTML = "";
-  const q = query(collection(db, "homeworks"), orderBy("timestamp", "desc"));
-  onSnapshot(q, snapshot => {
+  function submitHomework() {
+    const studentName = document.getElementById('studentName').value.trim();
+    const homework = document.getElementById('homework').value.trim();
+    if(!studentName || !homework) return;
+
+    db.collection("homeworks").add({ studentName, homework, timestamp: Date.now() })
+      .then(() => {
+        document.getElementById('homeMsg').innerText = "Ödev kaydedildi!";
+        document.getElementById('studentName').value = "";
+        document.getElementById('homework').value = "";
+      })
+      .catch(err => console.error(err));
+  }
+
+  function loadAllHomework() {
+    const tbody = document.getElementById('homeworkList');
     tbody.innerHTML = "";
-    snapshot.forEach(doc => {
-      const data = doc.data();
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${data.studentName}</td><td>${data.homework}</td>`;
-      tbody.appendChild(tr);
+    db.collection("homeworks").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+      tbody.innerHTML = "";
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${data.studentName}</td><td>${data.homework}</td>`;
+        tbody.appendChild(tr);
+      });
     });
-  });
-}
+  }
 </script>
 </body>
 </html>
