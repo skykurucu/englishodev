@@ -8,8 +8,9 @@
 body{font-family:Arial, sans-serif;padding:20px;}
 .hidden{display:none;}
 input, textarea{margin:5px 0;padding:5px;width:100%; max-width:400px;}
-textarea{height:150px;}
+textarea{height:100px;}
 button{padding:5px 10px;margin:5px 0;}
+.assignment{border:1px solid #ccc;padding:10px;margin:10px 0;}
 </style>
 </head>
 <body>
@@ -36,16 +37,14 @@ button{padding:5px 10px;margin:5px 0;}
 
 <div id="teacherPanel" class="hidden">
   <h2>Hoca Paneli</h2>
-  <input id="teacherStudent" placeholder="Öğrenci Adı"><br>
-  <button id="openBtn">Ödevi Aç</button><br>
-  <textarea id="teacherArea" placeholder="Ödev burada görünecek"></textarea><br>
+  <div id="assignmentsList"></div>
   <button id="logoutBtn2">Çıkış</button>
 </div>
 
 <script type="module">
 // Firebase modüllerini import et
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+import { getFirestore, collection, setDoc, doc, getDocs } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
 // Firebase yapılandırma
 const firebaseConfig = {
@@ -62,12 +61,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Giriş sistemi
+// Kullanıcı hesapları
 const ACCOUNTS=[
-  {username:'hoca',password:'hoca123',role:'teacher'},
-  {username:'sinif',password:'sinif123',role:'class'}
+  {username:'spideymustafa',password:'42mustafa42',role:'teacher'},
+  {username:'sinif',password:'sinifgiris',role:'class'}
 ];
 
+// Elementler
 const loginPanel=document.getElementById("loginPanel");
 const studentPanel=document.getElementById("studentPanel");
 const teacherPanel=document.getElementById("teacherPanel");
@@ -75,10 +75,11 @@ const loginBtn=document.getElementById("loginBtn");
 const logoutBtn1=document.getElementById("logoutBtn1");
 const logoutBtn2=document.getElementById("logoutBtn2");
 const saveBtn=document.getElementById("saveBtn");
-const openBtn=document.getElementById("openBtn");
+const assignmentsList=document.getElementById("assignmentsList");
 
 let currentUser=null;
 
+// Giriş işlemi
 loginBtn.onclick=()=>{
   const u=document.getElementById("user").value.trim();
   const p=document.getElementById("pass").value;
@@ -87,15 +88,20 @@ loginBtn.onclick=()=>{
   if(!acc){alert("Hatalı kullanıcı adı veya şifre!");return;}
   currentUser=acc;
   loginPanel.classList.add("hidden");
-  if(role==="class")studentPanel.classList.remove("hidden");
-  else teacherPanel.classList.remove("hidden");
+  if(role==="class") studentPanel.classList.remove("hidden");
+  else {
+    teacherPanel.classList.remove("hidden");
+    loadAllAssignments();
+  }
 };
 
+// Çıkış işlemi
 function logout(){
   currentUser=null;
   loginPanel.classList.remove("hidden");
   studentPanel.classList.add("hidden");
   teacherPanel.classList.add("hidden");
+  assignmentsList.innerHTML="";
 }
 logoutBtn1.onclick=logout;
 logoutBtn2.onclick=logout;
@@ -118,20 +124,24 @@ saveBtn.onclick=async()=>{
   }
 };
 
-// Hoca ödev görüntüleme
-openBtn.onclick=async()=>{
-  const name=document.getElementById("teacherStudent").value.trim();
-  if(!name){alert("İsim girin");return;}
-  try {
-    const snap=await getDoc(doc(db,"assignments",name));
-    if(!snap.exists()){alert("Bu isimle kayıt yok!");return;}
-    const data=snap.data();
-    document.getElementById("teacherArea").value=data.text;
-  } catch(e){
-    alert("Veri çekme hatası: "+e.message);
+// Hoca tüm ödevleri listele
+async function loadAllAssignments(){
+  assignmentsList.innerHTML="Yükleniyor...";
+  try{
+    const snap=await getDocs(collection(db,"assignments"));
+    assignmentsList.innerHTML="";
+    if(snap.empty){assignmentsList.innerHTML="Hiç ödev yok.";}
+    snap.forEach(docSnap=>{
+      const data=docSnap.data();
+      const div=document.createElement("div");
+      div.className="assignment";
+      div.innerHTML=`<strong>${docSnap.id}</strong><br>${data.text}<br><em>${new Date(data.savedAt).toLocaleString("tr-TR")}</em>`;
+      assignmentsList.appendChild(div);
+    });
+  }catch(e){
+    assignmentsList.innerHTML="Ödevleri yüklerken hata: "+e.message;
   }
-};
+}
 </script>
-
 </body>
 </html>
